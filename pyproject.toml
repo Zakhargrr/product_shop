@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "product-shop"
+version = "0.1.0"
+description = ""
+authors = ["zakhar <grankin-zakhar@mail.ru>"]
+readme = "README.md"
+packages = [{include = "product_shop"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+django = "^5.0.3"
+psycopg2-binary = "^2.9.9"
+djangorestframework = "^3.14.0"
+pillow = "^10.2.0"
+djangorestframework-simplejwt = "^5.3.1"
+python-dotenv = "^1.0.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
