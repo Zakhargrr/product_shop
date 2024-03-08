@@ -1,12 +1,9 @@
-from django.db import ProgrammingError
-from django.shortcuts import render
 from rest_framework import generics, status
-from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from main.models import Category, Product, Basket, BasketProduct
+from main.models import Category, Product
 from main.paginators import CustomPaginator
 from main.serializers import CategorySerializer, ProductSerializer
 from main.service import Cart
