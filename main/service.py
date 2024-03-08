@@ -20,10 +20,6 @@ class Cart:
     def add(self, product_pk, quantity=1, override_quantity=False):
         product = Product.objects.get(pk=product_pk)
         product_pk = str(product_pk)
-        # valid_product = Product.objects.filter(pk=product_pk)
-        # if not valid_product:
-        #     message = {'message': 'продукта с таким id не существует'}
-        #     return Response(message, status=status.HTTP_400_BAD_REQUEST)
         if product_pk not in self.cart:
             self.cart[product_pk] = {
                 'quantity': 0,
@@ -58,6 +54,5 @@ class Cart:
         return sum(item["price"] * item["quantity"] for item in self.cart.values())
 
     def clear(self):
-        # remove cart from session
         del self.session[settings.CART_SESSION_ID]
         self.save()
