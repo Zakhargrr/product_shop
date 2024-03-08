@@ -44,7 +44,6 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'rest_framework_simplejwt',
-    'single_session'
 ]
 
 MIDDLEWARE = [
@@ -147,5 +146,4 @@ REST_FRAMEWORK = {
     ]
 }
 
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 CART_SESSION_ID = 'cart'
