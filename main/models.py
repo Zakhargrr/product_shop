@@ -49,21 +49,3 @@ class Product(models.Model):
     class Meta:
         verbose_name = 'продукт'
         verbose_name_plural = 'продукты'
-
-
-class BasketProduct(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, verbose_name='продукт')
-    amount = models.IntegerField(verbose_name='количество')
-
-    class Meta:
-        verbose_name = 'продукт в корзине'
-        verbose_name_plural = 'продукты в корзине'
-
-
-class Basket(models.Model):
-    products = models.ManyToManyField(BasketProduct, verbose_name='продукты')
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name='владелец')
-
-    class Meta:
-        verbose_name = 'корзина'
-        verbose_name_plural = 'корзины'
