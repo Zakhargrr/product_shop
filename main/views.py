@@ -4,10 +4,12 @@ from rest_framework import generics, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from main.models import Category, Product, Basket, BasketProduct
 from main.paginators import CustomPaginator
 from main.serializers import CategorySerializer, ProductSerializer
+from main.service import Cart
 
 
 # Create your views here.
@@ -24,101 +26,54 @@ class ProductListAPIView(generics.ListAPIView):
     pagination_class = CustomPaginator
 
 
-@api_view(['POST', 'PATCH', 'DELETE'])
-@permission_classes([IsAuthenticated])
-def change_basket(request, product_pk):
-    valid_product = Product.objects.filter(pk=product_pk)
+class CartAPIView(APIView):
+    permission_classes = [IsAuthenticated]
 
-    if not valid_product:
-        message = {'message': 'продукта с таким id не существует'}
-        return Response(message, status=status.HTTP_400_BAD_REQUEST)
-    valid_product = valid_product[0]
-    user = request.user
-    owner_basket = Basket.objects.filter(owner=user.id)
-    if not owner_basket:
-        owner_basket = [Basket.objects.create(owner=user)]
+    def get(self, request):
+        cart = Cart(request)
+        self.check_object_permissions(request, cart)
+        return Response(
+            {'data': request.session
+             },
+            status=status.HTTP_200_OK
+        )
+        return Response(
+            {'data': list(iter(cart)),
+             'cart_total_price': cart.get_total_price(),
+             'cart_total_quantity': len(cart)
+             },
+            status=status.HTTP_200_OK
+        )
 
-    if request.method == 'POST':
-        try:
-            amount = request.data['amount']
-        except KeyError:
-            amount = 1
 
-        existing_product = owner_basket[0].products.filter(product=product_pk)
-        if not existing_product:
-            basket_product = BasketProduct.objects.create(
-                product=valid_product,
-                amount=amount
-            )
-            owner_basket[0].products.add(basket_product)
-            message = {'message': 'продукт добавлен в корзину'}
-            return Response(message, status=status.HTTP_200_OK)
+    def post(self, request, **kwargs):
+        cart = Cart(request)
+        self.check_object_permissions(request, cart)
+
+        if 'product_pk' not in request.data:
+            return Response({'message': 'в теле запроса нет id продукта'}, status=status.HTTP_400_BAD_REQUEST)
+
+        product_pk = request.data['product_pk']
+        if not Product.objects.filter(pk=product_pk):
+            return Response({'message': 'продукта с таким id не существует'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if 'remove' in request.data:
+            cart.remove(product_pk)
+            return Response({'message': 'товар убран из корзины'}, status=status.HTTP_202_ACCEPTED)
+
+        elif 'add' in request.data:
+            cart.add(product_pk=product_pk,
+                     quantity=request.data[
+                         "quantity"] if "quantity" in request.data else 1,
+                     override_quantity=request.data[
+                         "override_quantity"] if "override_quantity" in request.data else False
+                     )
+            return Response({'message': 'корзина обновлена'}, status=status.HTTP_202_ACCEPTED)
         else:
-            message = {'message': 'продукт уже есть в корзине'}
-            return Response(message, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': 'такое действие не предусмотрено'}, status=status.HTTP_400_BAD_REQUEST)
 
-    elif request.method == 'PATCH':
-        try:
-            amount = request.data['amount']
-        except KeyError:
-            amount = 1
-        existing_product = owner_basket[0].products.filter(product=product_pk)
-        if not existing_product:
-            message = {'message': 'продукт еще не добавлен в корзину'}
-            return Response(message, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            existing_product[0].amount = amount
-            existing_product[0].save()
-            message = {'message': 'количество продукта изменено'}
-            return Response(message, status=status.HTTP_200_OK)
+    def delete(self, request):
+        cart = Cart(request)
+        cart.clear()
 
-    elif request.method == 'DELETE':
-        existing_product = owner_basket[0].products.filter(product=product_pk)
-        if not existing_product:
-            message = {'message': 'продукт еще не добавлен в корзину'}
-            return Response(message, status=status.HTTP_400_BAD_REQUEST)
-        else:
-            existing_product[0].delete()
-            message = {'message': 'продукт удален из корзины'}
-            return Response(message, status=status.HTTP_200_OK)
-
-
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def retrieve_basket(request):
-    user = request.user
-    owner_basket = Basket.objects.filter(owner=user.id)
-    if not owner_basket:
-        message = {'message': 'корзина пуста'}
-        return Response(message, status=status.HTTP_200_OK)
-    else:
-        products_arr = []
-        total_price = 0
-        total_amount = 0
-        for basket_product in owner_basket[0].products.all():
-            product_dict = {'product': str(basket_product.product),
-                            'price': basket_product.product.price,
-                            'amount': basket_product.amount}
-            products_arr.append(product_dict)
-            total_amount += basket_product.amount
-            total_price += basket_product.amount * basket_product.product.price
-        response = {
-            'products': products_arr,
-            'total_amount': total_amount,
-            'total_price': total_price
-        }
-        return Response(response, status=status.HTTP_200_OK)
-
-
-@api_view(['DELETE'])
-@permission_classes([IsAuthenticated])
-def clear_basket(request):
-    user = request.user
-    owner_basket = Basket.objects.filter(owner=user.id)
-    if not owner_basket:
-        message = {'message': 'корзина пуста'}
-        return Response(message, status=status.HTTP_200_OK)
-    else:
-        owner_basket[0].delete()
-        message = {'message': 'корзина очищена'}
-        return Response(message, status=status.HTTP_200_OK)
+        return Response({'message': 'корзина очищена'}, status=status.HTTP_202_ACCEPTED)
