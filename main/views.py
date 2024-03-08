@@ -33,18 +33,12 @@ class CartAPIView(APIView):
         cart = Cart(request)
         self.check_object_permissions(request, cart)
         return Response(
-            {'data': request.session
-             },
-            status=status.HTTP_200_OK
-        )
-        return Response(
             {'data': list(iter(cart)),
              'cart_total_price': cart.get_total_price(),
              'cart_total_quantity': len(cart)
              },
             status=status.HTTP_200_OK
         )
-
 
     def post(self, request, **kwargs):
         cart = Cart(request)
